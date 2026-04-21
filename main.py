@@ -69,9 +69,11 @@ async def send_apk(user_id, context):
     ])
 
     file = BytesIO(APK_CACHE)
+    # Automatically picks name from GitHub URL
     original_filename = APK_URL.split("/")[-1] if APK_URL else "premium.apk"
     file.name = original_filename
 
+    # Updated APK Caption as requested
     apk_caption = (
         "💰Click And Install 💰\n\n"
         "💯 Activate Panel Now 💯"
@@ -111,7 +113,7 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await asyncio.sleep(1.5)
 
-        # 3. Third Message (NEW URL UPDATED)
+        # 3. Third Message (New URL Added)
         promo_msg = (
             "VIP NUMBER SURESHOT CHANNEL JOIN FREEE 👇🏻👇🏻\n\n"
             "https://t.me/+xOJoHwJTB3M3MzNl\n"
@@ -176,6 +178,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ================= MAIN EXECUTION =================
 def main():
     fetch_apk()
+    
+    # Conflict solve karne ke liye Application build settings
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(ChatJoinRequestHandler(join_request))
@@ -183,7 +187,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
 
-    print("Bot is running...")
+    # drop_pending_updates=True conflict ko automatically clear karega
+    print("Bot is starting...")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":

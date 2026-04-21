@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatMemberUpdated
 from telegram.ext import (
     ApplicationBuilder, ContextTypes, ChatJoinRequestHandler,
-    CommandHandler, MessageHandler, filters, ChatMemberHandler
+    CommandHandler, ChatMemberHandler
 )
 import json
 import os
@@ -10,20 +10,20 @@ from io import BytesIO
 from datetime import datetime
 import asyncio
 
+# --- Secrets/Env Variables ---
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 APK_URL = os.environ.get("APK_URL")
 VIP_CHANNEL_URL = os.environ.get("VIP_CHANNEL_URL")
 BOT_USERNAME = os.environ.get("BOT_USERNAME")
 LEAVE_MSG_URL = os.environ.get("LEAVE_MSG_URL")
+WELCOME_VIDEO_URL = os.environ.get("WELCOME_VIDEO_URL") 
 
 USERS_FILE = "users.json"
-WELCOME_IMAGE_URL = "https://kommodo.ai/i/lk66ZvAY1u3vzHXU9aLN"
 LEAVE_IMAGE_URL = "https://kommodo.ai/i/UTlTK3RUQvuCGsM1aCLS"
 
 APK_CACHE = None
 
-
-# ================= USERS =================
+# ================= USERS DATA MANAGEMENT =================
 def load_users():
     try:
         if os.path.exists(USERS_FILE):
@@ -33,11 +33,9 @@ def load_users():
         pass
     return []
 
-
 def save_users(users):
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=2)
-
 
 def add_user(user, users):
     if not any(u["id"] == user.id for u in users):
@@ -49,8 +47,7 @@ def add_user(user, users):
         })
         save_users(users)
 
-
-# ================= APK CACHE =================
+# ================= APK DOWNLOADER =================
 def fetch_apk():
     global APK_CACHE
     try:
@@ -62,8 +59,7 @@ def fetch_apk():
     except Exception as e:
         print("APK error:", e)
 
-
-# ================= SEND APK =================
+# ================= SEND APK FUNCTION =================
 async def send_apk(user_id, context):
     if not APK_CACHE:
         return
@@ -73,23 +69,23 @@ async def send_apk(user_id, context):
     ])
 
     file = BytesIO(APK_CACHE)
-    file.name = "jai club premium.apk"
+    original_filename = APK_URL.split("/")[-1] if APK_URL else "premium.apk"
+    file.name = original_filename
+
+    apk_caption = (
+        "💰Click And Install 💰\n\n"
+        "💯 Activate Panel Now 💯"
+    )
 
     await context.bot.send_document(
         chat_id=user_id,
         document=file,
-        filename="jai club premium.apk",
-        caption=(
-            "✅ 100% BEST APK IN WHOLE TELEGRAM 💥\n\n"
-            "( ONLY FOR PREMIUM USERS ⚡️ )\n\n"
-            "HOW TO USE - https://t.me/Howtousehack10/6\n\n"
-            "FOR HELP @Eran_WithSk1"
-        ),
+        filename=original_filename,
+        caption=apk_caption,
         reply_markup=btn
     )
 
-
-# ================= JOIN REQUEST =================
+# ================= JOIN REQUEST HANDLER =================
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.chat_join_request.from_user
 
@@ -97,24 +93,36 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = load_users()
         add_user(user, users)
 
-        btn = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔥 VIP CHANNEL LINK 🔥", url=VIP_CHANNEL_URL)]
-        ])
-
-        await context.bot.send_photo(
-            chat_id=user.id,
-            photo=WELCOME_IMAGE_URL,
-            caption="🚀🔥 WELCOME TO SK TRADERS PREMIUM BOT 🔥",
-            reply_markup=btn
+        # 1. Welcome Video
+        welcome_text = (
+            "💰How To Activate Vip Hack💰\n"
+            "Pls Video Ko Pura Dekhna\n"
+            "      💯 Setup Video 💯"
         )
 
+        await context.bot.send_video(
+            chat_id=user.id,
+            video=WELCOME_VIDEO_URL,
+            caption=welcome_text
+        )
+
+        # 2. Send APK
         await send_apk(user.id, context)
+        
+        await asyncio.sleep(1.5)
+
+        # 3. Third Message (NEW URL UPDATED)
+        promo_msg = (
+            "VIP NUMBER SURESHOT CHANNEL JOIN FREEE 👇🏻👇🏻\n\n"
+            "https://t.me/+xOJoHwJTB3M3MzNl\n"
+            "https://t.me/+xOJoHwJTB3M3MzNl"
+        )
+        await context.bot.send_message(chat_id=user.id, text=promo_msg)
 
     except Exception as e:
         print("Join error:", e)
 
-
-# ================= LEAVE TRACK =================
+# ================= TRACK USER LEAVING =================
 async def track_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         member = update.chat_member
@@ -131,10 +139,8 @@ async def track_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 caption="🙌 CONGRATULATIONS 🎉 APKO AB YE SARE FREE MELNE WALA HAI ES CHANNEL ME 👇🏻",
                 reply_markup=btn
             )
-
     except Exception as e:
         print("Leave error:", e)
-
 
 # ================= BROADCAST =================
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -156,8 +162,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"Broadcast sent to {sent} users ✅")
 
-
-# ================= START =================
+# ================= START COMMAND =================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     users = load_users()
@@ -168,8 +173,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Click button to get APK 🔥")
 
-
-# ================= MAIN =================
+# ================= MAIN EXECUTION =================
 def main():
     fetch_apk()
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -179,8 +183,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("broadcast", broadcast))
 
-    app.run_polling()
-
+    print("Bot is running...")
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
